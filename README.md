@@ -10,7 +10,7 @@ with CRDT (field-level) merging.
 - **Ant Design** (desktop UI) and **Ant Design Mobile** (phone UI, chosen by
   viewport at runtime; each ships as its own lazy-loaded chunk)
 - **Yjs** CRDT document persisted locally with **y-indexeddb**, synced over
-  the y-websocket protocol to a Cloudflare Worker + Durable Objects (`worker/`)
+  the y-websocket protocol to a Cloudflare Worker + Durable Objects (`worker.js`)
 - **zustand** store snapshotting the Y.Doc on every update
 - **dnd-kit** for drag-and-drop reordering
 - **vite-plugin-pwa** (installable, offline-capable, auto-updating)
@@ -51,16 +51,16 @@ stays private). The Cloudflare Worker serves BOTH the app and sync from one
 URL, and the free tier comfortably covers household use:
 
 ```bash
-cd worker && npm install && npx wrangler secret put SYNC_TOKEN && cd ..
-npm run deploy    # builds dist/ and deploys app + sync worker together
+npx wrangler secret put SYNC_TOKEN   # choose a long secret (one-time)
+npm run deploy                       # builds dist/ and deploys app + sync together
 ```
 
 Open the printed `https://budgetlope.<you>.workers.dev` URL on each device
 (install it as a PWA from the browser menu), then in Settings → Device Sync
 enter `wss://budgetlope.<you>.workers.dev` + your token. Each budget becomes
 its own Durable Object with WebSocket hibernation, so a two-person household
-runs comfortably within the free tier. Local dev: `cd worker && npm run dev`
-with the token in `.dev.vars`.
+runs comfortably within the free tier. Local dev: `npm run dev:worker` with
+the token in `.dev.vars`.
 
 Then in the app: Settings → Device Sync → URL (`wss://budgetlope.<you>.workers.dev`)
 + the token → Save & Connect. Sync is live and

@@ -1,9 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "budgetlope",
-  "main": "src/index.js",
+  "main": "worker.js",
   "compatibility_date": "2025-05-01",
-  "assets": { "directory": "../dist", "binding": "ASSETS" },
+  "assets": { "directory": "./dist", "binding": "ASSETS" },
   "durable_objects": {
     "bindings": [{ "name": "Y_DOC", "class_name": "YDocRoom" }]
   },

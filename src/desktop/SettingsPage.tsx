@@ -32,7 +32,7 @@ export default function SettingsPage() {
         style={{ marginBottom: 24 }}
       >
         <Typography.Paragraph type="secondary">
-          Optional. Point at the sync Worker (deployed from the <code>worker/</code> folder of
+          Optional. Point at the sync Worker (deployed with <code>npm run deploy</code> from
           this project) to live-sync between devices. The app is fully usable offline; edits
           merge field-by-field when you reconnect.
         </Typography.Paragraph>
