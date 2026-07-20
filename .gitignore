@@ -3,10 +3,7 @@ dist/
 dev-dist/
 *.local
 .DS_Store
-server/node_modules/
-server/*.sqlite*
 worker/node_modules/
 worker/.wrangler/
 worker/.dev.vars
-server/data/
 tsconfig.tsbuildinfo

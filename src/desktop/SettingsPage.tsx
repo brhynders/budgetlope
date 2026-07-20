@@ -32,9 +32,9 @@ export default function SettingsPage() {
         style={{ marginBottom: 24 }}
       >
         <Typography.Paragraph type="secondary">
-          Optional. Point at a Hocuspocus sync server (a ready-to-run one is in the{' '}
-          <code>server/</code> folder of this project) to live-sync between devices. The app is
-          fully usable offline; edits merge field-by-field when you reconnect.
+          Optional. Point at the sync Worker (deployed from the <code>worker/</code> folder of
+          this project) to live-sync between devices. The app is fully usable offline; edits
+          merge field-by-field when you reconnect.
         </Typography.Paragraph>
         <Form layout="vertical" onFinish={() => apply({ ...settings, enabled: true })}>
           <Form.Item

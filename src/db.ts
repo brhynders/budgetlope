@@ -73,7 +73,7 @@ export function snapshotDocs(): Record<string, AnyDoc> {
 }
 
 // ---------------------------------------------------------------------------
-// Sync via Hocuspocus (see server/ for a ready-to-run instance)
+// Sync via the y-websocket protocol (see worker/ for the server)
 
 export interface SyncSettings {
   url: string

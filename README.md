@@ -9,8 +9,8 @@ with CRDT (field-level) merging.
 - **Vite + React + TypeScript**
 - **Ant Design** (desktop UI) and **Ant Design Mobile** (phone UI, chosen by
   viewport at runtime; each ships as its own lazy-loaded chunk)
-- **Yjs** CRDT document persisted locally with **y-indexeddb**, synced via
-  **Hocuspocus** (`@hocuspocus/provider` client, server in `server/`)
+- **Yjs** CRDT document persisted locally with **y-indexeddb**, synced over
+  the y-websocket protocol to a Cloudflare Worker + Durable Objects (`worker/`)
 - **zustand** store snapshotting the Y.Doc on every update
 - **dnd-kit** for drag-and-drop reordering
 - **vite-plugin-pwa** (installable, offline-capable, auto-updating)
@@ -45,13 +45,10 @@ npm run build      # production build in dist/
 
 ## Sync
 
-Both servers speak the standard y-websocket protocol with token auth (the
-token travels as a `?token=` query parameter — terminate TLS so it stays
-private). Pick one:
-
-**Option A — Cloudflare Workers + Durable Objects (free tier, no server to run):**
-
-The Worker serves BOTH the app and sync from one URL.
+The sync server speaks the standard y-websocket protocol with token auth
+(the token travels as a `?token=` query parameter — terminate TLS so it
+stays private). The Cloudflare Worker serves BOTH the app and sync from one
+URL, and the free tier comfortably covers household use:
 
 ```bash
 cd worker && npm install && npx wrangler secret put SYNC_TOKEN && cd ..
@@ -65,16 +62,8 @@ its own Durable Object with WebSocket hibernation, so a two-person household
 runs comfortably within the free tier. Local dev: `cd worker && npm run dev`
 with the token in `.dev.vars`.
 
-**Option B — self-hosted Node server:**
-
-```bash
-cd server
-npm install
-SYNC_TOKEN=some-long-secret npm start   # PORT=8787, DATA_DIR=data by default
-```
-
-Then in the app: Settings → Device Sync → URL (`wss://budgetlope-sync.<you>.workers.dev`
-or `ws://host:8787`) + the token → Save & Connect. Sync is live and
+Then in the app: Settings → Device Sync → URL (`wss://budgetlope.<you>.workers.dev`)
++ the token → Save & Connect. Sync is live and
 bidirectional; each device keeps the full budget in IndexedDB and stays fully
 usable offline. Each budget syncs as its own document (`budgetlope` for the
 first budget, `budgetlope-<id>` for others). Concurrent edits merge **per field** (one device edits a
