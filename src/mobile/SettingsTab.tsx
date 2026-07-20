@@ -8,9 +8,9 @@ import {
   createBudget,
   currentBudget,
   deleteBudget,
-  loadBudgets,
   renameBudget,
   switchBudget,
+  useBudgets,
   type BudgetMeta,
 } from '../budgets'
 
@@ -21,9 +21,7 @@ const sheetBody: React.CSSProperties = {
 }
 
 function BudgetsSection() {
-  const [, setVersion] = useState(0)
-  const bump = () => setVersion((v) => v + 1)
-  const budgets = loadBudgets()
+  const budgets = useBudgets()
   const current = currentBudget()
 
   // null = closed; {mode:'create'} or {mode:'rename', budget}
@@ -37,7 +35,6 @@ function BudgetsSection() {
       switchBudget(createBudget(trimmed).id)
     } else {
       renameBudget(sheet.budget.id, trimmed)
-      bump()
     }
     setSheet(null)
   }
@@ -60,12 +57,11 @@ function BudgetsSection() {
                   setSheet({ mode: 'rename', budget: b })
                 } else if (action.key === 'delete') {
                   void Dialog.confirm({
-                    content: `Delete "${b.name}"? Its local data on this device is removed.`,
+                    content: `Delete "${b.name}"? It is removed from every synced device.`,
                     confirmText: 'Delete',
                   }).then((ok) => {
                     if (ok) {
                       deleteBudget(b.id)
-                      bump()
                       Toast.show('Budget deleted')
                     }
                   })

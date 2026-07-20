@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { IndexeddbPersistence } from 'y-indexeddb'
-import { currentBudget, docNameFor } from './budgets'
+import { currentBudget, docNameFor, initBudgetRegistry } from './budgets'
 import {
   collections,
   loadSyncSettings,
@@ -48,7 +48,7 @@ export async function initApp(): Promise<void> {
   initialized = true
 
   const persistence = new IndexeddbPersistence(docNameFor(currentBudget()), ydoc)
-  await persistence.whenSynced
+  await Promise.all([persistence.whenSynced, initBudgetRegistry()])
 
   if (collections['grp:'].size === 0) seedDefaults()
 

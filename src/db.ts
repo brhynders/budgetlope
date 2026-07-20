@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
-import { currentBudget, docNameFor } from './budgets'
+import { currentBudget, docNameFor, REGISTRY_DOC_NAME, registryDoc } from './budgets'
 import type { AnyDoc } from './types'
 
 export const ydoc = new Y.Doc()
@@ -103,6 +103,7 @@ export function saveSyncSettings(s: SyncSettings): void {
 export type SyncStatus = 'off' | 'connecting' | 'active' | 'error'
 
 let activeProvider: WebsocketProvider | null = null
+let registryProvider: WebsocketProvider | null = null
 
 export function startSync(
   settings: SyncSettings,
@@ -114,14 +115,14 @@ export function startSync(
     return
   }
   onStatus('connecting')
+  const base = settings.url.replace(/\/+$/, '')
+  const params: Record<string, string> = settings.token ? { token: settings.token } : {}
   let provider: WebsocketProvider
   try {
-    provider = new WebsocketProvider(
-      settings.url.replace(/\/+$/, ''),
-      docNameFor(currentBudget()),
-      ydoc,
-      { params: settings.token ? { token: settings.token } : {} },
-    )
+    provider = new WebsocketProvider(base, docNameFor(currentBudget()), ydoc, { params })
+    // The budget list syncs in its own fixed room so every device learns
+    // about budgets created or renamed elsewhere
+    registryProvider = new WebsocketProvider(base, REGISTRY_DOC_NAME, registryDoc, { params })
   } catch (err) {
     onStatus('error', String(err))
     return
@@ -151,5 +152,9 @@ export function stopSync(): void {
   if (activeProvider) {
     activeProvider.destroy()
     activeProvider = null
+  }
+  if (registryProvider) {
+    registryProvider.destroy()
+    registryProvider = null
   }
 }

@@ -16,9 +16,9 @@ import {
   createBudget,
   currentBudget,
   deleteBudget,
-  loadBudgets,
   renameBudget,
   switchBudget,
+  useBudgets,
 } from '../budgets'
 import AccountModal from './AccountModal'
 
@@ -43,11 +43,8 @@ const SYNC_COLORS: Record<string, string> = {
 }
 
 function BudgetSwitcher() {
-  // registry lives in localStorage; bump to re-render after create/rename/delete
-  const [, setVersion] = useState(0)
-  const bump = () => setVersion((v) => v + 1)
   const { modal } = App.useApp()
-  const budgets = loadBudgets()
+  const budgets = useBudgets()
   const current = currentBudget()
 
   const [nameModal, setNameModal] = useState<null | { mode: 'create' } | { mode: 'rename' }>(null)
@@ -60,7 +57,6 @@ function BudgetSwitcher() {
       switchBudget(createBudget(trimmed).id)
     } else {
       renameBudget(current.id, trimmed)
-      bump()
     }
     setNameModal(null)
   }
@@ -109,12 +105,11 @@ function BudgetSwitcher() {
                 onClick: () => {
                   void modal.confirm({
                     title: `Delete "${b.name}"?`,
-                    content: 'Its local data on this device is removed.',
+                    content: 'It is removed from every synced device.',
                     okText: 'Delete',
                     okButtonProps: { danger: true },
                     onOk: () => {
                       deleteBudget(b.id)
-                      bump()
                     },
                   })
                 },
