@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "budgetlope",
+  "main": "src/index.js",
+  "compatibility_date": "2025-05-01",
+  "assets": { "directory": "../dist", "binding": "ASSETS" },
+  "durable_objects": {
+    "bindings": [{ "name": "Y_DOC", "class_name": "YDocRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["YDocRoom"] }],
+  "observability": { "enabled": true }
+}
