@@ -50,7 +50,9 @@ export async function initApp(): Promise<void> {
   const persistence = new IndexeddbPersistence(docNameFor(currentBudget()), ydoc)
   await Promise.all([persistence.whenSynced, initBudgetRegistry()])
 
-  if (collections['grp:'].size === 0) seedDefaults()
+  // Joined budgets start empty locally until the first sync delivers the
+  // shared data — seeding would inject default categories into it
+  if (collections['grp:'].size === 0 && !currentBudget().joined) seedDefaults()
 
   useStore.setState({ docs: snapshotDocs(), ready: true })
 

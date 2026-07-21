@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
-import { App, Badge, Button, Dropdown, Input, Layout, Modal, Tooltip, Typography } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
+import { App, Badge, Button, Dropdown, Input, Layout, Modal, Spin, Tooltip, Typography } from 'antd'
 import {
   CheckOutlined,
   CreditCardOutlined,
   DownOutlined,
   PlusOutlined,
   SettingOutlined,
+  ShareAltOutlined,
   WalletOutlined,
 } from '@ant-design/icons'
 import { NavLink } from 'react-router-dom'
@@ -14,12 +15,16 @@ import { computeAccountBalances } from '../budgetMath'
 import { fmtMoney } from '../money'
 import {
   createBudget,
+  createInvite,
   currentBudget,
   deleteBudget,
+  joinSharedBudget,
   renameBudget,
   switchBudget,
   useBudgets,
+  type BudgetMeta,
 } from '../budgets'
+import { isSignedIn, loadSyncSettings } from '../syncSettings'
 import AccountModal from './AccountModal'
 
 const linkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
@@ -42,19 +47,66 @@ const SYNC_COLORS: Record<string, string> = {
   error: '#f5222d',
 }
 
+function ShareModal({ budget, onClose }: { budget: BudgetMeta | null; onClose: () => void }) {
+  const [code, setCode] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!budget) return
+    setCode(null)
+    setError(null)
+    createInvite(budget)
+      .then(setCode)
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+  }, [budget])
+
+  return (
+    <Modal open={!!budget} title={`Share “${budget?.name}”`} footer={null} onCancel={onClose}>
+      {error ? (
+        <Typography.Paragraph type="danger">{error}</Typography.Paragraph>
+      ) : code ? (
+        <>
+          <Typography.Paragraph>
+            Anyone with an account on this server can join this budget with the invite code
+            below (Join Shared Budget in their budget menu). It expires in 7 days.
+          </Typography.Paragraph>
+          <Typography.Title
+            level={2}
+            copyable
+            style={{ letterSpacing: 4, textAlign: 'center', fontFamily: 'monospace' }}
+          >
+            {code}
+          </Typography.Title>
+        </>
+      ) : (
+        <div style={{ textAlign: 'center', padding: 24 }}>
+          <Spin />
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 function BudgetSwitcher() {
-  const { modal } = App.useApp()
+  const { modal, message } = App.useApp()
   const budgets = useBudgets()
   const current = currentBudget()
+  const signedIn = isSignedIn(loadSyncSettings())
 
-  const [nameModal, setNameModal] = useState<null | { mode: 'create' } | { mode: 'rename' }>(null)
+  const [nameModal, setNameModal] = useState<null | { mode: 'create' } | { mode: 'rename' } | { mode: 'join' }>(null)
   const [name, setName] = useState('')
+  const [shareTarget, setShareTarget] = useState<BudgetMeta | null>(null)
 
   const commitName = () => {
     const trimmed = name.trim()
     if (!trimmed || !nameModal) return
     if (nameModal.mode === 'create') {
-      switchBudget(createBudget(trimmed).id)
+      void createBudget(trimmed).then((b) => switchBudget(b.id))
+    } else if (nameModal.mode === 'join') {
+      joinSharedBudget(trimmed)
+        .then((b) => switchBudget(b.id))
+        .catch((e) => message.error(e instanceof Error ? e.message : String(e)))
+      return
     } else {
       renameBudget(current.id, trimmed)
     }
@@ -91,6 +143,28 @@ function BudgetSwitcher() {
         setNameModal({ mode: 'rename' })
       },
     },
+    ...(signedIn
+      ? [
+          {
+            key: 'share',
+            label: (
+              <span>
+                <ShareAltOutlined style={{ marginRight: 6 }} />
+                Share “{current.name}”…
+              </span>
+            ),
+            onClick: () => setShareTarget(current),
+          },
+          {
+            key: 'join',
+            label: 'Join Shared Budget…',
+            onClick: () => {
+              setName('')
+              setNameModal({ mode: 'join' })
+            },
+          },
+        ]
+      : []),
     ...(budgets.length > 1
       ? [
           {
@@ -139,21 +213,39 @@ function BudgetSwitcher() {
         </span>
       </Dropdown>
       <Modal
-        title={nameModal?.mode === 'create' ? 'New Budget' : 'Rename Budget'}
+        title={
+          nameModal?.mode === 'create'
+            ? 'New Budget'
+            : nameModal?.mode === 'join'
+              ? 'Join Shared Budget'
+              : 'Rename Budget'
+        }
         open={!!nameModal}
-        okText={nameModal?.mode === 'create' ? 'Create & Switch' : 'Save'}
+        okText={
+          nameModal?.mode === 'create'
+            ? 'Create & Switch'
+            : nameModal?.mode === 'join'
+              ? 'Join'
+              : 'Save'
+        }
         onOk={commitName}
         onCancel={() => setNameModal(null)}
         destroyOnHidden
       >
+        {nameModal?.mode === 'join' && (
+          <Typography.Paragraph type="secondary">
+            Enter the invite code from the budget's owner.
+          </Typography.Paragraph>
+        )}
         <Input
           autoFocus
-          placeholder="Budget name"
+          placeholder={nameModal?.mode === 'join' ? 'Invite code' : 'Budget name'}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onPressEnter={commitName}
         />
       </Modal>
+      <ShareModal budget={shareTarget} onClose={() => setShareTarget(null)} />
     </>
   )
 }

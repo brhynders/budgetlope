@@ -5,8 +5,14 @@
   "compatibility_date": "2025-05-01",
   "assets": { "directory": "./dist", "binding": "ASSETS" },
   "durable_objects": {
-    "bindings": [{ "name": "Y_DOC", "class_name": "YDocRoom" }]
+    "bindings": [
+      { "name": "Y_DOC", "class_name": "YDocRoom" },
+      { "name": "DIRECTORY", "class_name": "Directory" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["YDocRoom"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["YDocRoom"] },
+    { "tag": "v2", "new_sqlite_classes": ["Directory"] }
+  ],
   "observability": { "enabled": true }
 }

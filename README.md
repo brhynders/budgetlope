@@ -43,32 +43,43 @@ npm run build      # production build in dist/
 - JSON export/import backup (Settings); imports from the earlier PouchDB
   version's backups work too.
 
-## Sync
+## Sync, accounts & sharing
 
-The sync server speaks the standard y-websocket protocol with token auth
-(the token travels as a `?token=` query parameter — terminate TLS so it
-stays private). The Cloudflare Worker serves BOTH the app and sync from one
-URL, and the free tier comfortably covers household use:
+The sync server speaks the standard y-websocket protocol. The Cloudflare
+Worker serves BOTH the app and sync from one URL:
 
 ```bash
-npx wrangler secret put SYNC_TOKEN   # choose a long secret (one-time)
 npm run deploy                       # builds dist/ and deploys app + sync together
 ```
 
 Open the printed `https://budgetlope.<you>.workers.dev` URL on each device
-(install it as a PWA from the browser menu), then in Settings → Device Sync
-enter `wss://budgetlope.<you>.workers.dev` + your token. Each budget becomes
-its own Durable Object with WebSocket hibernation, so a two-person household
-runs comfortably within the free tier. Local dev: `npm run dev:worker` with
-the token in `.dev.vars`.
+(install it as a PWA from the browser menu), then in Settings → Sync &
+Account enter `wss://budgetlope.<you>.workers.dev` and **create an account**
+(email + password). Each account only sees its own budgets. Local dev:
+`npm run dev:worker`.
 
-Then in the app: Settings → Device Sync → URL (`wss://budgetlope.<you>.workers.dev`)
-+ the token → Save & Connect. Sync is live and
-bidirectional; each device keeps the full budget in IndexedDB and stays fully
-usable offline. Each budget syncs as its own document (`budgetlope` for the
-first budget, `budgetlope-<id>` for others). Concurrent edits merge **per field** (one device edits a
-transaction's memo while another edits its amount → both survive) instead of
-last-write-wins per record.
+**Sharing a budget:** budget menu (desktop) or swipe a budget in Settings
+(mobile) → Share → an 8-character invite code (valid 7 days). Another
+account redeems it via "Join Shared Budget" and both edit the same budget
+live. "Delete" leaves a shared budget; the last member out deletes its data
+on the server.
+
+Accounts, sessions, membership and invites live in a singleton `Directory`
+Durable Object (SQLite); passwords are PBKDF2-hashed (iteration count
+tunable via a `PBKDF2_ITERS` var if free-plan CPU limits bite). Each budget
+syncs as its own Durable Object room with WebSocket hibernation, gated by a
+membership check, so a household runs comfortably within the free tier.
+
+**Legacy mode:** rooms not registered to any account still honor the old
+shared `SYNC_TOKEN` secret (`npx wrangler secret put SYNC_TOKEN`), so
+pre-account devices keep syncing. Signing in "adopts" the device's existing
+budgets into the account, after which the shared token no longer reaches
+them.
+
+Sync is live and bidirectional; each device keeps the full budget in
+IndexedDB and stays fully usable offline. Concurrent edits merge **per
+field** (one device edits a transaction's memo while another edits its
+amount → both survive) instead of last-write-wins per record.
 
 ## Data model
 
