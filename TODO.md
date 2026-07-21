@@ -1,0 +1,7 @@
+- PWA enhancements
+  - Loading screen
+- UI
+  - Rework to tailwind
+- Features
+  - Goals
+  - Reporting
