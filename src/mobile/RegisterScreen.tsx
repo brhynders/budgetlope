@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
-import { FloatingBubble, List, NavBar, SwipeAction, Tag } from 'antd-mobile'
-import { AddOutline, CheckCircleFill } from 'antd-mobile-icons'
+import { CheckCircle2, ChevronLeft, Circle, Plus, Trash2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { useData } from '../store'
 import { computeAccountBalances } from '../budgetMath'
-import { fmtMoney } from '../money'
 import { deleteTxn, toggleCleared } from '../actions'
 import { RTA, type TxnDoc } from '../types'
 import TxnSheet from './TxnSheet'
+import SwipeRow from './ui/SwipeRow'
+import { Amount, Card, Divided } from './ui/controls'
 
 export default function RegisterScreen() {
   const { id } = useParams()
@@ -27,7 +27,15 @@ export default function RegisterScreen() {
   const balances = useMemo(() => computeAccountBalances(data.txns), [data.txns])
   const bal = balances[accountId] ?? { cleared: 0, uncleared: 0, working: 0 }
 
-  if (!account) return <NavBar onBack={() => navigate('/accounts')}>Not found</NavBar>
+  if (!account)
+    return (
+      <div className="px-5 py-6">
+        <button className="flex items-center gap-1 text-mute" onClick={() => navigate('/accounts')}>
+          <ChevronLeft size={20} /> Accounts
+        </button>
+        <div className="mt-8 text-center text-mute">This account no longer exists.</div>
+      </div>
+    )
 
   const byDate: [string, TxnDoc[]][] = []
   for (const t of txns) {
@@ -49,80 +57,112 @@ export default function RegisterScreen() {
 
   return (
     <div>
-      <NavBar onBack={() => navigate('/accounts')}>
-        <div style={{ fontWeight: 700 }}>{account.name}</div>
-        <div style={{ fontSize: 12, color: '#888' }}>
-          {fmtMoney(bal.working)} · {fmtMoney(bal.cleared)} cleared
-        </div>
-      </NavBar>
+      <header className="flex items-center gap-1 px-2 pt-3 pb-1">
+        <button
+          aria-label="Back to accounts"
+          className="p-2 text-mute active:text-fg"
+          onClick={() => navigate('/accounts')}
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="truncate text-[18px] font-bold">{account.name}</h1>
+      </header>
+
+      {/* Balance summary */}
+      <div className="mx-4 grid grid-cols-3 divide-x divide-line rounded-2xl bg-surface py-3 ring-1 ring-line">
+        {(
+          [
+            ['Cleared', bal.cleared],
+            ['Uncleared', bal.uncleared],
+            ['Working', bal.working],
+          ] as const
+        ).map(([label, cents]) => (
+          <div key={label} className="px-2 text-center">
+            <div className="text-[11px] font-medium tracking-wide text-faint">{label}</div>
+            <div className="text-[14px]">
+              <Amount cents={cents} dim={cents === 0} />
+            </div>
+          </div>
+        ))}
+      </div>
 
       {byDate.map(([date, rows]) => (
-        <div key={date}>
-          <div className="m-date-header">{dayjs(date).format('dddd, MMMM D, YYYY')}</div>
-          <List>
-            {rows.map((t) => (
-              <SwipeAction
-                key={t._id}
-                rightActions={[
-                  { key: 'clear', text: t.cleared ? 'Unclear' : 'Clear', color: 'primary' },
-                  { key: 'delete', text: 'Delete', color: 'danger' },
-                ]}
-                onAction={(action) => {
-                  if (action.key === 'delete') void deleteTxn(t._id)
-                  if (action.key === 'clear') void toggleCleared(t._id)
-                }}
-              >
-                <List.Item
-                  clickable
-                  arrowIcon={false}
-                  description={
-                    <span>
-                      {catLabel(t)}
-                      {t.memo ? ` · ${t.memo}` : ''}
-                    </span>
-                  }
-                  extra={
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className={`m-amount ${t.amount > 0 ? 'pos' : t.amount < 0 ? '' : 'zero'}`}>
-                        {fmtMoney(t.amount)}
-                      </span>
-                      {t.cleared && <CheckCircleFill style={{ color: '#1a7f64', fontSize: 14 }} />}
-                    </span>
-                  }
-                  onClick={() => {
+        <section key={date}>
+          <div className="px-5 pt-4 pb-1.5 text-[11px] font-semibold tracking-[0.08em] text-faint uppercase">
+            {dayjs(date).format('ddd, MMM D, YYYY')}
+          </div>
+          <Card>
+            <Divided>
+              {rows.map((t) => (
+                <SwipeRow
+                  key={t._id}
+                  right={[
+                    {
+                      key: 'clear',
+                      label: t.cleared ? 'Unclear' : 'Clear',
+                      icon: t.cleared ? <Circle size={17} /> : <CheckCircle2 size={17} />,
+                      tone: 'accent',
+                      onPress: () => void toggleCleared(t._id),
+                    },
+                    {
+                      key: 'delete',
+                      label: 'Delete',
+                      icon: <Trash2 size={17} />,
+                      tone: 'danger',
+                      onPress: () => void deleteTxn(t._id),
+                    },
+                  ]}
+                  onTap={() => {
                     setEditTxn(t)
                     setSheetOpen(true)
                   }}
                 >
-                  {t.transferTxnId ? catLabel(t) : t.payee || '—'}
-                </List.Item>
-              </SwipeAction>
-            ))}
-          </List>
-        </div>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <span
+                      className={t.cleared ? 'text-mint' : 'text-faint'}
+                      aria-label={t.cleared ? 'Cleared' : 'Uncleared'}
+                    >
+                      {t.cleared ? <CheckCircle2 size={17} /> : <Circle size={17} />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-medium">
+                        {t.transferTxnId ? catLabel(t) : t.payee || '—'}
+                      </span>
+                      <span className="block truncate text-[12px] text-faint">
+                        {catLabel(t)}
+                        {t.memo ? ` · ${t.memo}` : ''}
+                      </span>
+                    </span>
+                    <Amount cents={t.amount} dim={t.amount === 0} />
+                  </div>
+                </SwipeRow>
+              ))}
+            </Divided>
+          </Card>
+        </section>
       ))}
 
       {txns.length === 0 && (
-        <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>
-          No transactions yet.
-          <br />
-          Tap <Tag color="primary">+</Tag> to add one.
+        <div className="px-10 py-14 text-center text-[14px] leading-relaxed text-mute">
+          No transactions yet. Tap the{' '}
+          <span className="inline-flex translate-y-[3px] rounded-full bg-mint-deep p-0.5 text-mint">
+            <Plus size={14} />
+          </span>{' '}
+          button to add the first one.
         </div>
       )}
 
-      <FloatingBubble
-        style={{
-          '--initial-position-bottom': 'calc(84px + env(safe-area-inset-bottom))',
-          '--initial-position-right': '20px',
-          '--background': '#1a7f64',
-        }}
+      <button
+        aria-label="Add transaction"
+        className="fixed right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-mint text-ink shadow-lg shadow-black/40 transition-transform active:scale-90"
+        style={{ bottom: 'calc(84px + env(safe-area-inset-bottom))' }}
         onClick={() => {
           setEditTxn(null)
           setSheetOpen(true)
         }}
       >
-        <AddOutline fontSize={26} />
-      </FloatingBubble>
+        <Plus size={26} />
+      </button>
 
       <TxnSheet
         visible={sheetOpen}

@@ -1,11 +1,30 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+@import 'tailwindcss';
+
+@theme {
+  /* Mobile dark palette — green-cast ink, brand green lifted to mint */
+  --color-ink: #0c110f;
+  --color-surface: #161d1a;
+  --color-raised: #1f2925;
+  --color-line: #232d28;
+  --color-mint: #35c39a;
+  --color-mint-deep: #10352a;
+  --color-loss: #f07a70;
+  --color-loss-deep: #3a1b19;
+  --color-warn: #d9a441;
+  --color-fg: #eef4f0;
+  --color-mute: #8ba297;
+  --color-faint: #55675e;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-:root:root {
-  --adm-color-primary: #1a7f64;
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 html,
@@ -18,6 +37,58 @@ body,
 body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+  font-family: var(--font-sans);
+}
+
+/* Mobile shell is dark; keep desktop (antd) light */
+@media (max-width: 767px) {
+  body {
+    background: var(--color-ink);
+    color-scheme: dark;
+  }
+}
+
+/* --- Mobile shell -------------------------------------------------------- */
+
+.m-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-ink);
+  color: var(--color-fg);
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.m-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+/* iOS-style momentum + tap behavior; text isn't selectable like a web page */
+.m-screen * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.m-screen {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.m-screen input,
+.m-screen textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-screen *,
+  #splash {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
 
 /* --- Desktop budget grid ------------------------------------------------ */
@@ -73,7 +144,7 @@ body {
   outline: 1px solid #b7dfd4;
 }
 
-/* --- Register ----------------------------------------------------------- */
+/* --- Desktop register --------------------------------------------------- */
 
 .register-table .ant-table-cell {
   padding: 6px 8px !important;
@@ -95,57 +166,4 @@ body {
 
 .ant-table-row:hover .txn-row-actions {
   visibility: visible;
-}
-
-/* --- Mobile ------------------------------------------------------------- */
-
-.m-screen {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: #fff;
-  /* viewport-fit=cover: keep content clear of the notch/Dynamic Island and
-     the rounded corners / sensor housing in landscape */
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-.m-body {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 16px;
-}
-
-/* Bottom inset comes from TabBar's safeArea prop — don't add it again here */
-.m-tabbar {
-  border-top: 1px solid #eee;
-  background: #fff;
-}
-
-.m-amount {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.m-date-header {
-  padding: 6px 16px;
-  font-size: 12px;
-  color: #999;
-  background: #f7f7f7;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.pos {
-  color: #1a7f64;
-}
-
-.neg {
-  color: #cf1322;
-}
-
-.zero {
-  color: #999;
 }

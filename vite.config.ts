@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
@@ -15,6 +16,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
@@ -22,8 +24,8 @@ export default defineConfig({
         name: 'Budgetlope',
         short_name: 'Budgetlope',
         description: 'Local-first envelope budgeting',
-        theme_color: '#1a7f64',
-        background_color: '#ffffff',
+        theme_color: '#0c110f',
+        background_color: '#0c110f',
         display: 'standalone',
         start_url: '/',
         icons: [

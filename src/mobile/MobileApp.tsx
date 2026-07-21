@@ -1,14 +1,17 @@
-import { ConfigProvider, TabBar, setDefaultConfig } from 'antd-mobile'
-import enUS from 'antd-mobile/es/locales/en-US'
-
-// ConfigProvider doesn't reach imperative components (Dialog.confirm, Toast)
-setDefaultConfig({ locale: enUS })
-import { AppOutline, BillOutline, SetOutline } from 'antd-mobile-icons'
+import { Landmark, Mail, Settings } from 'lucide-react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import BudgetTab from './BudgetTab'
 import AccountsTab from './AccountsTab'
 import RegisterScreen from './RegisterScreen'
 import SettingsTab from './SettingsTab'
+import { ToastHost } from './ui/Toast'
+import { DialogHost } from './ui/Dialog'
+
+const TABS = [
+  { key: '/budget', label: 'Budget', Icon: Mail },
+  { key: '/accounts', label: 'Accounts', Icon: Landmark },
+  { key: '/settings', label: 'Settings', Icon: Settings },
+]
 
 export default function MobileApp() {
   const location = useLocation()
@@ -21,7 +24,6 @@ export default function MobileApp() {
       : '/budget'
 
   return (
-    <ConfigProvider locale={enUS}>
     <div className="m-screen">
       <div className="m-body">
         <Routes>
@@ -32,17 +34,27 @@ export default function MobileApp() {
           <Route path="*" element={<Navigate to="/budget" replace />} />
         </Routes>
       </div>
-      <TabBar
-        className="m-tabbar"
-        activeKey={activeKey}
-        onChange={(key) => navigate(key)}
-        safeArea
-      >
-        <TabBar.Item key="/budget" title="Budget" icon={<AppOutline />} />
-        <TabBar.Item key="/accounts" title="Accounts" icon={<BillOutline />} />
-        <TabBar.Item key="/settings" title="Settings" icon={<SetOutline />} />
-      </TabBar>
+
+      <nav className="pb-safe flex border-t border-line bg-ink/90 backdrop-blur-lg">
+        {TABS.map(({ key, label, Icon }) => {
+          const active = key === activeKey
+          return (
+            <button
+              key={key}
+              onClick={() => navigate(key)}
+              className={`flex flex-1 flex-col items-center gap-1 pt-2.5 pb-2 transition-colors ${
+                active ? 'text-mint' : 'text-faint active:text-mute'
+              }`}
+            >
+              <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
+              <span className="text-[10px] font-semibold">{label}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      <ToastHost />
+      <DialogHost />
     </div>
-    </ConfigProvider>
   )
 }

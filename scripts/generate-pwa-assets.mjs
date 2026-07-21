@@ -57,7 +57,7 @@ for (const d of devices) {
     .resize(iconPx, iconPx)
     .png()
     .toBuffer()
-  await sharp({ create: { width: w, height: h, channels: 3, background: '#ffffff' } })
+  await sharp({ create: { width: w, height: h, channels: 3, background: '#0c110f' } })
     .composite([{ input: icon, gravity: 'centre' }])
     .png()
     .toFile(`${root}public/splash/apple-splash-${w}x${h}.png`)

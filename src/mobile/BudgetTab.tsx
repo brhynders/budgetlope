@@ -1,26 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Button, Collapse, Dialog, Input, List, Popup, SwipeAction, Tag, Toast } from 'antd-mobile'
-import { LeftOutline, RightOutline } from 'antd-mobile-icons'
+import { ChevronLeft, ChevronRight, EyeOff, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { useData } from '../store'
 import { addMonths, computeBudget, fmtMonth, thisMonth, type CatMonth } from '../budgetMath'
 import { centsToInput, fmtMoney, parseMoney } from '../money'
 import { deleteCategory, renameCategory, setAssigned, setCategoryHidden } from '../actions'
 import type { CategoryDoc } from '../types'
-
-function AvailableTag({ cents }: { cents: number }) {
-  const color = cents > 0 ? 'success' : cents < 0 ? 'danger' : '#b8bfc6'
-  return (
-    <Tag color={color} style={{ fontSize: 14, padding: '3px 8px' }} round>
-      {fmtMoney(cents)}
-    </Tag>
-  )
-}
-
-const sheetBody: React.CSSProperties = {
-  borderTopLeftRadius: 16,
-  borderTopRightRadius: 16,
-  padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
-}
+import Sheet from './ui/Sheet'
+import SwipeRow from './ui/SwipeRow'
+import { toast } from './ui/Toast'
+import { confirmDialog } from './ui/Dialog'
+import { Card, Divided, Pill, PrimaryButton, SectionLabel, inputCls } from './ui/controls'
 
 export default function BudgetTab() {
   const data = useData()
@@ -48,197 +37,197 @@ export default function BudgetTab() {
     setRenameCat(null)
   }
 
-  const onSwipeAction = (key: string, c: CategoryDoc) => {
-    if (key === 'rename') {
-      setRenameText(c.name)
-      setRenameCat(c)
-    } else if (key === 'hide') {
-      void setCategoryHidden(c._id, true)
-      Toast.show(`Hid "${c.name}"`)
-    } else if (key === 'delete') {
-      void Dialog.confirm({
-        content: `Delete "${c.name}"? Its transactions become uncategorized.`,
-        confirmText: 'Delete',
-      }).then((ok) => {
-        if (ok) void deleteCategory(c._id)
-      })
-    } else if (key === 'zero') {
-      void setAssigned(month, c._id, 0)
-      Toast.show(`Zeroed ${fmtMonth(month)} assignment`)
-    }
-  }
+  const positive = budget.rta >= 0
 
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px 4px',
-        }}
-      >
-        <Button fill="none" onClick={() => setMonth(addMonths(month, -1))}>
-          <LeftOutline />
-        </Button>
-        <span style={{ fontSize: 18, fontWeight: 700 }} onClick={() => setMonth(thisMonth())}>
+      {/* Month stepper */}
+      <div className="flex items-center justify-between px-2 pt-2">
+        <button
+          className="p-3 text-mute active:text-fg"
+          aria-label="Previous month"
+          onClick={() => setMonth(addMonths(month, -1))}
+        >
+          <ChevronLeft size={22} />
+        </button>
+        <button className="text-[17px] font-bold" onClick={() => setMonth(thisMonth())}>
           {fmtMonth(month)}
-        </span>
-        <Button fill="none" onClick={() => setMonth(addMonths(month, 1))}>
-          <RightOutline />
-        </Button>
+        </button>
+        <button
+          className="p-3 text-mute active:text-fg"
+          aria-label="Next month"
+          onClick={() => setMonth(addMonths(month, 1))}
+        >
+          <ChevronRight size={22} />
+        </button>
       </div>
 
+      {/* Ready-to-assign hero — the envelope */}
       <div
-        style={{
-          margin: '8px 16px 12px',
-          borderRadius: 12,
-          padding: '12px 16px',
-          textAlign: 'center',
-          background: budget.rta >= 0 ? '#e7f6f0' : '#ffece8',
-        }}
+        className={`relative mx-4 mt-1 mb-1 overflow-hidden rounded-2xl p-4 ring-1 ${
+          positive ? 'bg-mint-deep ring-mint/20' : 'bg-loss-deep ring-loss/20'
+        }`}
       >
-        <div style={{ fontSize: 26, fontWeight: 800 }} className={budget.rta >= 0 ? 'pos' : 'neg'}>
+        {/* envelope flap seam */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-14 opacity-[0.07]"
+          style={{
+            background: positive ? '#35c39a' : '#f07a70',
+            clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+          }}
+        />
+        <div
+          className={`tabular relative text-[34px] leading-tight font-extrabold ${positive ? 'text-mint' : 'text-loss'}`}
+        >
           {fmtMoney(budget.rta)}
         </div>
-        <div style={{ fontSize: 12, color: '#666' }}>
-          {budget.rta >= 0 ? 'Ready to Assign' : 'Overassigned'}
+        <div className="relative text-[12px] font-medium text-mute">
+          {positive ? 'Ready to assign' : 'Overassigned — cover this'}
         </div>
       </div>
 
-      <Collapse defaultActiveKey={data.groups.map((g) => g._id)}>
-        {data.groups.map((g) => {
-          const cats = (data.categoriesByGroup[g._id] ?? []).filter((c) => !c.hidden)
-          if (cats.length === 0) return null
-          const avail = cats.reduce((s, c) => s + (budget.cats[c._id]?.available ?? 0), 0)
-          return (
-            <Collapse.Panel
-              key={g._id}
-              title={
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <span style={{ fontWeight: 600 }}>{g.name}</span>
-                  <span className="m-amount" style={{ color: '#888' }}>
-                    {fmtMoney(avail)}
-                  </span>
-                </div>
-              }
+      {data.groups.map((g) => {
+        const cats = (data.categoriesByGroup[g._id] ?? []).filter((c) => !c.hidden)
+        if (cats.length === 0) return null
+        const avail = cats.reduce((s, c) => s + (budget.cats[c._id]?.available ?? 0), 0)
+        return (
+          <section key={g._id}>
+            <SectionLabel
+              extra={<span className="tabular text-[12px] font-semibold text-mute">{fmtMoney(avail)}</span>}
             >
-              <List>
+              {g.name}
+            </SectionLabel>
+            <Card>
+              <Divided>
                 {cats.map((c) => {
                   const cm = budget.cats[c._id] ?? { assigned: 0, activity: 0, available: 0 }
                   const isCC = !!c.ccAccountId
                   return (
-                    <SwipeAction
+                    <SwipeRow
                       key={c._id}
-                      leftActions={
-                        isCC ? [] : [{ key: 'zero', text: 'Zero', color: 'light' }]
-                      }
-                      rightActions={
+                      left={
                         isCC
                           ? []
                           : [
-                              { key: 'rename', text: 'Rename', color: 'primary' },
-                              { key: 'hide', text: 'Hide', color: 'warning' },
-                              { key: 'delete', text: 'Delete', color: 'danger' },
+                              {
+                                key: 'zero',
+                                label: 'Zero',
+                                icon: <RotateCcw size={17} />,
+                                tone: 'neutral',
+                                onPress: () => {
+                                  void setAssigned(month, c._id, 0)
+                                  toast(`Zeroed ${fmtMonth(month)} assignment`)
+                                },
+                              },
                             ]
                       }
-                      onAction={(action) => onSwipeAction(String(action.key), c)}
+                      right={
+                        isCC
+                          ? []
+                          : [
+                              {
+                                key: 'rename',
+                                label: 'Rename',
+                                icon: <Pencil size={17} />,
+                                tone: 'accent',
+                                onPress: () => {
+                                  setRenameText(c.name)
+                                  setRenameCat(c)
+                                },
+                              },
+                              {
+                                key: 'hide',
+                                label: 'Hide',
+                                icon: <EyeOff size={17} />,
+                                tone: 'warn',
+                                onPress: () => {
+                                  void setCategoryHidden(c._id, true)
+                                  toast(`Hid "${c.name}"`)
+                                },
+                              },
+                              {
+                                key: 'delete',
+                                label: 'Delete',
+                                icon: <Trash2 size={17} />,
+                                tone: 'danger',
+                                onPress: () => {
+                                  void confirmDialog({
+                                    title: `Delete "${c.name}"?`,
+                                    message: 'Its transactions become uncategorized.',
+                                    confirmText: 'Delete',
+                                    danger: true,
+                                  }).then((ok) => {
+                                    if (ok) void deleteCategory(c._id)
+                                  })
+                                },
+                              },
+                            ]
+                      }
+                      onTap={() => {
+                        setText(centsToInput(cm.assigned))
+                        setEditCat(c)
+                      }}
                     >
-                      <List.Item
-                        clickable
-                        arrowIcon={false}
-                        extra={<AvailableTag cents={cm.available} />}
-                        description={`Assigned ${fmtMoney(cm.assigned)} · Spent ${fmtMoney(cm.activity)}`}
-                        onClick={() => {
-                          setText(centsToInput(cm.assigned))
-                          setEditCat(c)
-                        }}
-                      >
-                        {c.name}
-                      </List.Item>
-                    </SwipeAction>
+                      <div className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-[15px] font-medium">{c.name}</div>
+                          <div className="tabular text-[12px] text-faint">
+                            Assigned {fmtMoney(cm.assigned)} · Spent {fmtMoney(cm.activity)}
+                          </div>
+                        </div>
+                        <Pill cents={cm.available} />
+                      </div>
+                    </SwipeRow>
                   )
                 })}
-              </List>
-            </Collapse.Panel>
-          )
-        })}
-      </Collapse>
+              </Divided>
+            </Card>
+          </section>
+        )
+      })}
 
-      <Popup
-        visible={!!editCat}
-        onMaskClick={() => setEditCat(null)}
-        position="bottom"
-        bodyStyle={sheetBody}
-      >
+      {/* Assign editor */}
+      <Sheet open={!!editCat} onClose={commit} title={editCat?.name}>
         {editCat && (
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{editCat.name}</div>
-            <div style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>
+            <div className="tabular mb-4 text-[13px] text-mute">
               {fmtMonth(month)} · Spent {fmtMoney(editCm?.activity ?? 0)} · Available{' '}
               {fmtMoney(editCm?.available ?? 0)}
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                border: '1px solid #ddd',
-                borderRadius: 10,
-                padding: '10px 12px',
-                marginBottom: 16,
-              }}
-            >
-              <span style={{ color: '#888', flexShrink: 0 }}>Assigned $</span>
-              <Input
+            <div className="mb-4 flex items-center gap-2 rounded-xl bg-raised px-3.5 py-1">
+              <span className="shrink-0 text-[14px] text-mute">Assigned $</span>
+              <input
                 type="number"
                 inputMode="decimal"
                 autoFocus
                 placeholder="0.00"
                 value={text}
-                onChange={setText}
-                onEnterPress={commit}
-                style={{ '--text-align': 'right', flex: 1 } as React.CSSProperties}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && commit()}
+                className="tabular w-full bg-transparent py-3 text-right text-[17px] font-semibold outline-none placeholder:text-faint"
               />
             </div>
-            <Button block color="primary" size="large" onClick={commit}>
-              Save
-            </Button>
+            <PrimaryButton onClick={commit}>Save</PrimaryButton>
           </div>
         )}
-      </Popup>
+      </Sheet>
 
-      <Popup
-        visible={!!renameCat}
-        onMaskClick={() => setRenameCat(null)}
-        position="bottom"
-        bodyStyle={sheetBody}
-      >
+      {/* Rename */}
+      <Sheet open={!!renameCat} onClose={() => setRenameCat(null)} title="Rename category">
         {renameCat && (
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 16 }}>Rename Category</div>
-            <div
-              style={{
-                border: '1px solid #ddd',
-                borderRadius: 10,
-                padding: '10px 12px',
-                marginBottom: 16,
-              }}
-            >
-              <Input
-                autoFocus
-                placeholder="Category name"
-                value={renameText}
-                onChange={setRenameText}
-                onEnterPress={commitRename}
-              />
-            </div>
-            <Button block color="primary" size="large" onClick={commitRename}>
-              Save
-            </Button>
+            <input
+              autoFocus
+              placeholder="Category name"
+              value={renameText}
+              onChange={(e) => setRenameText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && commitRename()}
+              className={`${inputCls} mb-4`}
+            />
+            <PrimaryButton onClick={commitRename}>Save</PrimaryButton>
           </div>
         )}
-      </Popup>
+      </Sheet>
     </div>
   )
 }
