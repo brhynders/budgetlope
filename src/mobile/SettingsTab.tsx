@@ -17,7 +17,7 @@ import {
 const sheetBody: React.CSSProperties = {
   borderTopLeftRadius: 16,
   borderTopRightRadius: 16,
-  padding: 20,
+  padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
 }
 
 function BudgetsSection() {

@@ -112,7 +112,7 @@ export default function RegisterScreen() {
 
       <FloatingBubble
         style={{
-          '--initial-position-bottom': '84px',
+          '--initial-position-bottom': 'calc(84px + env(safe-area-inset-bottom))',
           '--initial-position-right': '20px',
           '--background': '#1a7f64',
         }}

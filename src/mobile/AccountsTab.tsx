@@ -93,7 +93,11 @@ export default function AccountsTab() {
         visible={addOpen}
         onMaskClick={() => setAddOpen(false)}
         position="bottom"
-        bodyStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 }}
+        bodyStyle={{
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
+        }}
       >
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 16 }}>Add Account</div>
         <div style={{ display: 'grid', gap: 12 }}>

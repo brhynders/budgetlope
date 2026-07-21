@@ -17,7 +17,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Budgetlope',
         short_name: 'Budgetlope',
@@ -34,6 +34,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // iOS fetches launch screens itself at install time — don't bloat the
+        // service-worker precache with them
+        globIgnores: ['**/splash/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),

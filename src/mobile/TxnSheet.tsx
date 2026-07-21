@@ -31,7 +31,7 @@ const rowStyle: React.CSSProperties = {
 const sheetBody: React.CSSProperties = {
   borderTopLeftRadius: 16,
   borderTopRightRadius: 16,
-  padding: '20px 20px 32px',
+  padding: '20px 20px calc(32px + env(safe-area-inset-bottom))',
   maxHeight: '85vh',
   overflowY: 'auto',
 }

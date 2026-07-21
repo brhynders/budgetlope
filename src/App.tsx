@@ -12,6 +12,20 @@ const loading = (
   </div>
 )
 
+// Mounts only once Suspense has resolved, i.e. the real UI is in the DOM —
+// then fades out the index.html splash overlay.
+function SplashRemover() {
+  useEffect(() => {
+    const el = document.getElementById('splash')
+    if (!el) return
+    el.classList.add('splash-hide')
+    el.addEventListener('transitionend', () => el.remove(), { once: true })
+    const fallback = setTimeout(() => el.remove(), 500)
+    return () => clearTimeout(fallback)
+  }, [])
+  return null
+}
+
 export default function App() {
   const ready = useStore((s) => s.ready)
   const isMobile = useIsMobile()
@@ -22,5 +36,10 @@ export default function App() {
 
   if (!ready) return loading
 
-  return <Suspense fallback={loading}>{isMobile ? <MobileApp /> : <DesktopApp />}</Suspense>
+  return (
+    <Suspense fallback={loading}>
+      {isMobile ? <MobileApp /> : <DesktopApp />}
+      <SplashRemover />
+    </Suspense>
+  )
 }
